@@ -20,6 +20,7 @@ RUN apt-get update
 RUN apt-get install libasound-dev libportaudio2 libportaudiocpp0 portaudio19-dev gcc -y
 #RUN apt-get install openjdk-11-jdk
 RUN pip install pyaudio
+RUN pip install pydub
 RUN pip install --upgrade setuptools
 RUN pip install jupyterlab
 RUN python -m spacy download pt_core_news_sm

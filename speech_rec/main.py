@@ -1,119 +1,90 @@
-import random
-import time
-
+# importing libraries
 import speech_recognition as sr
+from speech_rec.utils.logger import logger, Colorize
+import spacy
+import re
 
 
-def recognize_speech_from_mic(recognizer, microphone):
-    """Transcribe speech from recorded from `microphone`.
-
-    Returns a dictionary with three keys:
-    "success": a boolean indicating whether or not the API request was
-               successful
-    "error":   `None` if no error occured, otherwise a string containing
-               an error message if the API could not be reached or
-               speech was unrecognizable
-    "transcription": `None` if speech could not be transcribed,
-               otherwise a string containing the transcribed text
-    """
-    # check that recognizer and microphone arguments are appropriate type
-    if not isinstance(recognizer, sr.Recognizer):
-        raise TypeError("`recognizer` must be `Recognizer` instance")
-
-    if not isinstance(microphone, sr.Microphone):
-        raise TypeError("`microphone` must be `Microphone` instance")
-
-    # adjust the recognizer sensitivity to ambient noise and record audio
-    # from the microphone
-    with microphone as source:
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-
-    # set up the response object
-    response = {
-        "success": True,
-        "error": None,
-        "transcription": None
-    }
-
-    # try recognizing the speech in the recording
-    # if a RequestError or UnknownValueError exception is caught,
-    #     update the response object accordingly
-    try:
-        response["transcription"] = recognizer.recognize_google(audio, language='pt-BR')
-    except sr.RequestError:
-        # API was unreachable or unresponsive
-        response["success"] = False
-        response["error"] = "API unavailable"
-    except sr.UnknownValueError:
-        # speech was unintelligible
-        response["error"] = "Unable to recognize speech"
-
-    return response
+PATH = '/opt/dna/speech_recognition/datalake/medroom/transient/'
+NER = spacy.load("pt_core_news_sm")
 
 
-if __name__ == "__main__":
-    # set the list of words, maxnumber of guesses, and prompt limit
-    WORDS = ["Ir até a maca", "banana", "grape", "orange", "mango", "lemon"]
-    NUM_GUESSES = 3
-    PROMPT_LIMIT = 5
+class SpeechRecognition:
 
-    # create recognizer and mic instances
-    recognizer = sr.Recognizer()
-    microphone = sr.Microphone()
+    def __init__(self,audio_file):
 
-    # get a random word from the list
-    word = random.choice(WORDS)
+        self.audio_file = audio_file
 
-    # format the instructions string
-    instructions = (
-        "I'm thinking of one of these words:\n"
-        "{words}\n"
-        "You have {n} tries to guess which one.\n"
-    ).format(words=', '.join(WORDS), n=NUM_GUESSES)
+        super().__init__()
+    
+    @classmethod
+    def call_processor(self, audio_file):
 
-    # show instructions and wait 3 seconds before starting the game
-    print(instructions)
-    time.sleep(3)
+        # Initialize recognizer class (for recognizing the speech)
+        r = sr.Recognizer()
 
-    for i in range(NUM_GUESSES):
-        # get the guess from the user
-        # if a transcription is returned, break out of the loop and
-        #     continue
-        # if no transcription returned and API request failed, break
-        #     loop and continue
-        # if API request succeeded but no transcription was returned,
-        #     re-prompt the user to say their guess again. Do this up
-        #     to PROMPT_LIMIT times
-        for j in range(PROMPT_LIMIT):
-            print('Guess {}. Speak!'.format(i+1))
-            guess = recognize_speech_from_mic(recognizer, microphone)
-            if guess["transcription"]:
-                break
-            if not guess["success"]:
-                break
-            print("I didn't catch that. What did you say?\n")
+        # Reading Audio file as source
+        # listening the audio file and store in audio_text variable
 
-        # if there was an error, stop the game
-        if guess["error"]:
-            print("ERROR: {}".format(guess["error"]))
-            break
+        with sr.AudioFile(PATH + audio_file) as source:
+            
+            audio_text = r.listen(source)
+            
+        # recoginize_() method will throw a request error if the API is unreachable, hence using exception handling
+            try:
+                
+                # using google speech recognition
+                text = r.recognize_google(audio_text, language = "pt-BR")
+                logger.info('Converting audio transcripts into text ...')
+                logger.info(text)
+            
+            except:
+                logger.info('Sorry.. run again...')
 
-        # show the user the transcription
-        print("You said: {}".format(guess["transcription"]))
+        return text
+    
+    @classmethod
+    def ner(self,text, parser='spacy', ner_type = '', anonymizer = False, custom_anonymizer = '<UNK>'):
+        
+        output = []
+        
+        if isinstance(ner_type, str):
+            ner_type = [ner_type]
+            
+        if parser == 'spacy':
 
-        # determine if guess is correct and if any attempts remain
-        guess_is_correct = guess["transcription"].lower() == word.lower()
-        user_has_more_attempts = i < NUM_GUESSES - 1
+            ner = NER(text)
+            for entidade in ner.ents:   
 
-        # determine if the user has won the game
-        # if not, repeat the loop if user has more attempts
-        # if no attempts left, the user loses the game
-        if guess_is_correct:
-            print("Correct! You win!".format(word))
-            break
-        elif user_has_more_attempts:
-            print("Incorrect. Try again.\n")
+                if anonymizer:
+                    if len(ner_type) == 0:
+                        print('WARNING: Please Specify An Entity Type.')
+                        return text
+
+                    for ner in ner_type:
+                        if entidade.label_ == ner:
+                            try:
+                                text = re.sub(entidade.text, custom_anonymizer, text)
+                            except:
+                                text = text
+                    output = text
+                else:
+                    output.append(
+                        self.detect_pattern(entidade.text, entidade.text, entidade.label_, entidade.start_char, entidade.end_char)
+                    )
         else:
-            print("Sorry, you lose!\nI was thinking of '{}'.".format(word))
-            break
+            print('Invalid Parser.')
+
+        return output
+        
+
+    @classmethod
+    def detect_pattern(self, match, key, ner_type, start_index, end_index):
+        # TODO: add score 
+        return {
+            "entity": match,
+            "value": key,
+            "type": ner_type, 
+            "startIndex": start_index,
+            "endIndex": end_index,
+        }

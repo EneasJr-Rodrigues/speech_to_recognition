@@ -20,7 +20,7 @@ setup(
     author_email=INFO['author_email'],
     url=INFO['url'],    
     license=open(os.path.join(PROJECT_DIR, 'LICENSE')).read(),
-    packages=find_namespace_packages(include=['speech_rec','speech_rec.*']),
+    packages=find_namespace_packages(include=['speech_rec','speech_rec.utils']),
     install_requires=[d for d in DEPENDENCIES if '://' not in d],
     python_requires='>=3.9',
     #TO-DO: Fix dependency links : not working with bdist_wheel
