@@ -1,0 +1,60 @@
+pytz>=2021.1
+
+## pandas dataframe
+pandas>=0.20.3
+openpyxl>=3.0.9
+
+SpeechRecognition
+
+## Notebooks
+notedown>=1.5.1
+jupyterthemes>=0.20.0
+
+## Models
+# joblib>=0.14.1
+# scikit-learn>=0.23
+# joblibspark>=0.2.0
+
+## Visualization
+seaborn>=0.11.1
+# bokeh>=2.2.3
+# holoviews>=1.13.5
+## Security
+# cryptography>=2.7
+## Text
+nltk>=3.6.6
+spacy>=3.0.3
+# Datetime
+pyLDAvis
+# Datetime
+pendulum>=2.0.5
+kneebow
+
+python-dotenv>=0.15.0
+firebase-admin>=4.5.2
+
+# APIs
+requests>=2.26.0
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
+gensim>=4.0.0
+python-Levenshtein>=0.12.2
+
+# WordCloud
+wordcloud>=1.8.1
+
+#data visualization
+matplotlib>=3.1.1
+
+## Machine Learning libs
+hypopt>=1.0.9
+scikit-learn>=0.24.2
+joblib>=1.0.1
+
+## Detect language
+langdetect
+
+pytest
+papermill
+mlflow>=1.22.0
+coverage>=5.5
+
